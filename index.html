@@ -28,6 +28,8 @@
     var b2PolygonShape = Box2D.Collision.Shapes.b2PolygonShape;
     var b2CircleShape = Box2D.Collision.Shapes.b2CircleShape;
 
+    var listener = new Box2D.Dynamics.b2ContactListener;
+
     var box2d = (function() {
 
     // important box2d scale and speed vars
@@ -75,6 +77,20 @@
       rightBodyDef.position.y = -25 / SCALE;
       var right = world.CreateBody(rightBodyDef);
       right.CreateFixture(rightFixture);
+
+      listener.BeginContact = function(contact) {
+         console.log(contact.GetFixtureB().GetBody().GetUserData());
+      }
+      listener.EndContact = function(contact) {
+          // console.log(contact.GetFixtureA().GetBody().GetUserData());
+      }
+      listener.PostSolve = function(contact, impulse) {
+          
+      }
+      listener.PreSolve = function(contact, oldManifold) {
+
+      }
+      world.SetContactListener(listener);
     }
 
     // actor object - this is responsible for taking the body's position and translating it to your easel display object
