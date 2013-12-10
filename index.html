@@ -4,7 +4,7 @@
     <title></title>
     <script type="text/javascript" src="http://code.createjs.com/createjs-2013.09.25.min.js"></script>
     <script type="text/javascript" src="assets/scripts/Box2dWeb-2.1.a.3.min.js"></script>
-    <script src="/assets/scripts/DataChannel.js"></script>
+    <script src="assets/scripts/DataChannel.js"></script>
     
   </head>
   <body onload="init()" id="body">
@@ -297,10 +297,10 @@
 
         queue.installPlugin(createjs.Sound);
         queue.addEventListener("complete", onLoadComplete);
-        queue.loadManifest([{id:"shrimp", src:"http://"+host+"/assets/shrimp64.png"},
-                            {id:"bullet", src:"http://"+host+"/assets/bullet18.png"}, 
-                            {id:"songA", src:"http://"+host+"/assets/ToneWobbleA.mp3"},
-                            {id:"songC", src:"http://"+host+"/assets/ToneWobbleC.mp3"}]);
+        queue.loadManifest([{id:"shrimp", src:"assets/shrimp64.png"},
+                            {id:"bullet", src:"assets/bullet18.png"}, 
+                            {id:"songA", src:"assets/ToneWobbleA.mp3"},
+                            {id:"songC", src:"assets/ToneWobbleC.mp3"}]);
 
 
         function tick(event){
