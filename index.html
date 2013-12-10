@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title></title>
+    <script type="text/javascript" src="http://code.createjs.com/createjs-2013.09.25.min.js"></script>
+    <script type="text/javascript" src="assets/scripts/Box2dWeb-2.1.a.3.min.js"></script>
+    <script src="/assets/scripts/DataChannel.js"></script>
+    
+  </head>
+  <body onload="init()" id="body">
+    <input type="text" id="channel" value="channel" style="font-size: 1.1em; text-align: right; width: 4em;" title="channel name - use your own channel name"/>
+    <button id="init-RTCMultiConnection">Open</button>
+    <button id="join-RTCMultiConnection">Join</button>
+    <input type="text" id="chat-input" disabled style="font-size: 2em; width: 98%;"><br/>
+    <canvas id="myCanvas" width=500 height=500>
+      I'm Sorry, your browser does not support the canvas tag.
+    </canvas>
+    <div id="chat-output"></div>
+  </body>
+
+  <script type="text/javascript">
+    var b2Vec2 = Box2D.Common.Math.b2Vec2;
+    var b2BodyDef = Box2D.Dynamics.b2BodyDef;
+    var b2Body = Box2D.Dynamics.b2Body;
+    var b2FixtureDef = Box2D.Dynamics.b2FixtureDef;
+    var b2Fixture = Box2D.Dynamics.b2Fixture;
+    var b2World = Box2D.Dynamics.b2World;
+    var b2PolygonShape = Box2D.Collision.Shapes.b2PolygonShape;
+    var b2CircleShape = Box2D.Collision.Shapes.b2CircleShape;
+
+    var box2d = (function() {
+
+    // important box2d scale and speed vars
+    var SCALE = 30, STEP = 20, TIMESTEP = 1/STEP;
+
+    var world;
+    var lastTimestamp = Date.now();
+    var fixedTimestepAccumulator = 0;
+    var bodiesToRemove = [];
+    var actors = [];
+    var bodies = [];
+
+    // box2d world setup and boundaries
+    var setup = function() {
+      world = new b2World(new b2Vec2(0,10), true);
+      // boundaries - floor
+      var floorFixture = new b2FixtureDef;
+      floorFixture.density = 1;
+      floorFixture.restitution = 1;
+      floorFixture.shape = new b2PolygonShape;
+      floorFixture.shape.SetAsBox(viewWidth / SCALE, 10 / SCALE);
+      var floorBodyDef = new b2BodyDef;
+      floorBodyDef.type = b2Body.b2_staticBody;
+      floorBodyDef.position.x = -25 / SCALE;
+      floorBodyDef.position.y = (viewHeight+10) / SCALE;
+      var floor = world.CreateBody(floorBodyDef);
+      floor.CreateFixture(floorFixture);
+      // boundaries - left
+      var leftFixture = new b2FixtureDef;
+      leftFixture.shape = new b2PolygonShape;
+      leftFixture.shape.SetAsBox(10 / SCALE, viewHeight / SCALE);
+      var leftBodyDef = new b2BodyDef;
+      leftBodyDef.type = b2Body.b2_staticBody;
+      leftBodyDef.position.x = -9 / SCALE;
+      leftBodyDef.position.y = -25 / SCALE;
+      var left = world.CreateBody(leftBodyDef);
+      left.CreateFixture(leftFixture);
+      // boundaries - right
+      var rightFixture = new b2FixtureDef;
+      rightFixture.shape = new b2PolygonShape;
+      rightFixture.shape.SetAsBox(10 / SCALE, viewHeight / SCALE);
+      var rightBodyDef = new b2BodyDef;
+      rightBodyDef.type = b2Body.b2_staticBody;
+      rightBodyDef.position.x = (viewWidth+5) / SCALE;
+      rightBodyDef.position.y = -25 / SCALE;
+      var right = world.CreateBody(rightBodyDef);
+      right.CreateFixture(rightFixture);
+    }
+
+    // actor object - this is responsible for taking the body's position and translating it to your easel display object
+    var actorObject = function(body, skin) {
+      this.body = body;
+      this.skin = skin;
+      this.update = function() {  // translate box2d positions to pixels
+        this.skin.rotation = this.body.GetAngle() * (180 / Math.PI);
+        this.skin.x = this.body.GetWorldCenter().x * SCALE;
+        this.skin.y = this.body.GetWorldCenter().y * SCALE;
+      }
+      actors.push(this);
+    }
+
+    // create bullet body shape and assign actor object
+    var createBullet = function(skin,angle,power) {
+      var bulletFixture = new b2FixtureDef;
+      bulletFixture.density = 1;
+      bulletFixture.restitution = 0.6;
+      bulletFixture.shape = new b2CircleShape(9 / SCALE);
+      var bulletBodyDef = new b2BodyDef;
+      bulletBodyDef.type = b2Body.b2_dynamicBody;
+      bulletBodyDef.position.x = skin.x / SCALE;
+      bulletBodyDef.position.y = skin.y / SCALE;
+      var bullet = world.CreateBody(bulletBodyDef);
+      bullet.CreateFixture(bulletFixture);
+      bullet.ApplyImpulse(new b2Vec2(Math.cos(angle) * 5,Math.sin(angle) * 5), bullet.GetWorldCenter());
+
+      // assign actor
+      var actor = new actorObject(bullet, skin);
+      bullet.SetUserData(actor);  // set the actor as user data of the body so we can use it later: body.GetUserData()
+      bodies.push(bullet);
+    }
+
+    // remove actor and it's skin object
+    var removeActor = function(actor) {
+      stage.removeChild(actor.skin);
+      actors.splice(actors.indexOf(actor),1);
+    }
+
+    // box2d update function. delta time is used to avoid differences in simulation if frame rate drops
+    var update = function() {
+      var now = Date.now();
+      var dt = now - lastTimestamp;
+      fixedTimestepAccumulator += dt;
+      lastTimestamp = now;
+      while(fixedTimestepAccumulator >= STEP) {
+        // remove bodies before world timestep
+        for(var i=0, l=bodiesToRemove.length; i<l; i++) {
+          removeActor(bodiesToRemove[i].GetUserData());
+          bodiesToRemove[i].SetUserData(null);
+          world.DestroyBody(bodiesToRemove[i]);
+        }
+        bodiesToRemove = [];
+
+        // update active actors
+        for(var i=0, l=actors.length; i<l; i++) {
+          actors[i].update();
+        }
+
+        world.Step(TIMESTEP, 5, 5);
+
+        fixedTimestepAccumulator -= STEP;
+        world.ClearForces();
+          if(bodies.length > 30) {
+            bodiesToRemove.push(bodies[0]);
+            bodies.splice(0,1);
+          }
+      }
+    }
+
+    return {
+      setup: setup,
+      update: update,
+      createBullet: createBullet,
+    }
+  })();
+
+    // Chat Initializers
+    // Basically like owning a dope loop pedal
+
+    var channel = new DataChannel();
+    /*
+    channel.onmessage = function (data, userid, latency) {
+        console.debug(userid, 'posted', data);
+        //appendDIV(data);
+        console.log('latency:', latency, 'ms');
+        createjs.Sound.play("songA");
+    };
+    */
+
+    channel.onopen = function () {
+        if (document.getElementById('chat-input')) document.getElementById('chat-input').disabled = false;
+        if (document.getElementById('file')) document.getElementById('file').disabled = false;
+
+        if (document.getElementById('init-RTCMultiConnection')) document.getElementById('init-RTCMultiConnection').disabled = true;
+    };
+
+    document.getElementById('init-RTCMultiConnection').onclick = function () {
+        channel.open(document.getElementById('channel').value || 'channel');
+        document.getElementById('join-RTCMultiConnection').disabled = true;
+        document.getElementById('init-RTCMultiConnection').disabled = true;
+    };
+
+    document.getElementById('join-RTCMultiConnection').onclick = function () {
+        channel.connect(document.getElementById('channel').value || 'channel');
+        document.getElementById('join-RTCMultiConnection').disabled = true;
+        document.getElementById('init-RTCMultiConnection').disabled = true;
+    };
+
+    var chatOutput = document.getElementById('chat-output'),
+            fileProgress = document.getElementById('file-progress');
+
+    function appendDIV(data, parent) {
+        var div = document.createElement('div');
+        div.innerHTML = data;
+
+        if (!parent) chatOutput.appendChild(div, chatOutput.firstChild);
+        else fileProgress.appendChild(div, fileProgress.firstChild);
+
+        div.tabIndex = 0;
+        div.focus();
+
+        chatInput.focus();
+    }
+
+    var chatInput = document.getElementById('chat-input');
+    chatInput.onkeypress = function (e) {
+        if (e.keyCode !== 13 || !this.value) return;
+        appendDIV(this.value);
+        channel.send(this.value);
+        this.value = '';
+        this.focus();
+    };
+  
+  /* users presence detection */
+    channel.onleave = function (userid) {
+    var message = 'A user whose id is '+ userid + ' left you!';
+        appendDIV(message);
+        console.warn(message);
+    };
+
+      var stage;
+      var queue
+      var canvasRef;
+      var viewWidth;
+      var viewHeight;
+
+      var tweens;
+      var activeCount;
+      var circleCount = 25;
+
+      var bulletDelayCounter = 0; // counter for delaying creation of bullets
+
+      var bulletStart;
+
+      Array.prototype.randomElement = function () {
+        return this[Math.floor(Math.random() * this.length)]
+      }
+
+      function init() {
+        var ctx = document.getElementById('myCanvas').getContext('2d');
+        viewWidth = 1000;//window.innerWidth;
+        viewHeight = 618;//window.innerHeight;
+        ctx.canvas.width  = viewWidth;
+        ctx.canvas.height = viewHeight;
+
+        stage = new createjs.Stage('myCanvas');
+        queue = new createjs.LoadQueue(false);
+        box2d.setup();
+        var bullets = (function() {
+
+          var spawn = function(x,y,time) {
+            var bulletBMP = new createjs.Bitmap(queue.getResult("bullet"));
+            bulletBMP.x = 500;
+            bulletBMP.y = 500;
+            bulletBMP.regX = 9;   // important to set origin point to center of your bitmap
+            bulletBMP.regY = 9; 
+            bulletBMP.snapToPixel = true;
+            bulletBMP.mouseEnabled = false;
+            stage.addChild(bulletBMP);
+
+            var angle = Math.atan((y-500)/(x-500));
+            if(x <500){
+              angle += Math.PI;
+            }
+            box2d.createBullet(bulletBMP, angle, time/10);
+          }
+
+          return {
+            spawn: spawn
+          }
+        })();
+
+        var pathArray = window.location.href.split( '/' );
+        var host = pathArray[2];
+
+        queue.installPlugin(createjs.Sound);
+        queue.addEventListener("complete", onLoadComplete);
+        queue.loadManifest([{id:"shrimp", src:"http://"+host+"/assets/shrimp64.png"},
+                            {id:"bullet", src:"http://"+host+"/assets/bullet18.png"}, 
+                            {id:"songA", src:"http://"+host+"/assets/ToneWobbleA.mp3"},
+                            {id:"songC", src:"http://"+host+"/assets/ToneWobbleC.mp3"}]);
+
+
+        function tick(event){
+
+          stage.update();
+          box2d.update();
+          /*
+          bulletDelayCounter++;
+          if(bulletDelayCounter % 10 === 0) {  // delay so it doesn't spawn a bullet on every frame
+            bulletDelayCounter = 0;
+            bullets.spawn();
+          }
+          */
+        }
+
+        function tweenComplete() {
+            activeCount--;
+        }
+
+        function handleClick(event){
+          var choice  = Math.random();
+          if(choice > 0.5){
+            createjs.Sound.play("songA");
+          }
+          else createjs.Sound.play("songC");
+          /*
+          var bmp = new createjs.Bitmap(queue.getResult("shrimp"));
+          bmp.x = Math.random()*500;
+          bmp.y = Math.random()*500;
+          stage.addChild(bmp);
+          */
+          /*
+          for (var i=0; i<circleCount; i++) {
+                var ref = tweens[i].ref;
+                var tween = tweens[i].tween;
+                                createjs.Tween.get(ref,{override:true}).to({x:stage.mouseX,y:stage.mouseY}, (0.5+i*0.04)*1500, createjs.Ease.bounceOut).call(tweenComplete);
+          }
+          activeCount = circleCount;
+          */
+
+          bulletStart = Date.now();
+        }
+
+        function fireBullet(event){
+          bullets.spawn(stage.mouseX, stage.mouseY, Date.now()-bulletStart);
+        }
+
+        function mouseMove(event){
+          //channel.send(stage.mouseX);
+        }
+
+        function onLoadComplete(event){
+          var back = new createjs.Shape();
+          //ball.addEventListener("click", handleClick);
+          stage.addEventListener("stagemousedown", handleClick);
+          stage.addEventListener("stagemouseup", fireBullet);
+          stage.addEventListener("stagemousemove", mouseMove);
+          back.graphics.beginFill('AAAAAA').drawRect(0,0,viewWidth,viewHeight);
+
+          //createjs.Tween.get(ball, {loop : true}).to({x:viewWidth-100}, 20000).to({x:100}, 20000);
+
+          channel.onmessage = function (data, userid, latency) {
+            console.debug(userid, 'posted', data);
+            //appendDIV(data);
+            //ball.x = data;
+            console.log('latency:', latency, 'ms');
+            //createjs.Sound.play("songA");
+          };
+
+          createjs.Ticker.addEventListener("tick", tick);
+          createjs.Ticker.setFPS(30);
+
+          stage.addChild(back);
+
+          tweens = [];
+                        
+          for (var i=0; i<circleCount; i++) {
+              // draw the circle, and put it on stage:
+              var circle = new createjs.Shape();
+              circle.graphics.setStrokeStyle(15);
+              circle.graphics.beginStroke("#331155");
+              circle.graphics.drawCircle(0,0,(i+1)*4);
+              circle.alpha = 1-i*0.02;
+              circle.x = Math.random()*550;
+              circle.y = Math.random()*400;
+              circle.compositeOperation = "lighter";
+
+              var tween = createjs.Tween.get(circle).to({x:275,y:200}, (0.5+i*0.04)*1500, createjs.Ease.bounceOut).call(tweenComplete);
+              tweens.push({tween:tween, ref:circle});
+              stage.addChild(circle);
+          }
+        }
+      }
+
+    </script>
+</html>
