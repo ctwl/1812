@@ -22,3 +22,13 @@ time, mark, audio, video {
     font: inherit;
     vertical-align: baseline;
 }
+
+#channel {
+    font-size: 1.1em;
+    text-align: right;
+    width: 4em;
+}
+#chat-input {
+    font-size: 2em;
+    width: 98%;
+}
