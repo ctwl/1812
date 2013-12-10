@@ -22,6 +22,10 @@ time, mark, audio, video {
     font: inherit;
     vertical-align: baseline;
 }
+body{
+    position:absolute;
+    width:100%;
+}
 
 #channel {
     font-size: 1.1em;
@@ -31,4 +35,12 @@ time, mark, audio, video {
 #chat-input {
     font-size: 2em;
     width: 98%;
+}
+#canvasContainer {
+    clear:both;
+    width:1000px;
+    height:618px;
+    margin:0px auto 0px auto;
+    position:relative;
+    outline:1px solid black;
 }

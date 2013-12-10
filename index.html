@@ -2,19 +2,21 @@
 <html>
   <head>
     <title></title>
+    <link href="styles.css" rel="stylesheet" type="text/css">
     <script type="text/javascript" src="http://code.createjs.com/createjs-2013.09.25.min.js"></script>
     <script type="text/javascript" src="assets/scripts/Box2dWeb-2.1.a.3.min.js"></script>
     <script src="assets/scripts/DataChannel.js"></script>
-    <link href="styles.css" rel="stylesheet" type="text/css">
   </head>
   <body onload="init()" id="body">
     <input type="text" id="channel" value="channel" title="channel name - use your own channel name"/>
     <button id="init-RTCMultiConnection">Open</button>
     <button id="join-RTCMultiConnection">Join</button>
     <input type="text" id="chat-input" disabled><br/>
-    <canvas id="myCanvas" width=500 height=500>
-      I'm Sorry, your browser does not support the canvas tag.
-    </canvas>
+    <div id="canvasContainer">
+        <canvas id="myCanvas" width=500 height=500>
+          I'm Sorry, your browser does not support the canvas tag.
+        </canvas>
+    </div>
     <div id="chat-output"></div>
   </body>
 
@@ -254,8 +256,8 @@
 
       function init() {
         var ctx = document.getElementById('myCanvas').getContext('2d');
-        viewWidth = 1000;//window.innerWidth;
-        viewHeight = 618;//window.innerHeight;
+        viewWidth = document.getElementById('canvasContainer').offsetWidth;//window.innerWidth;
+        viewHeight = document.getElementById('canvasContainer').offsetHeight;//window.innerHeight;
         ctx.canvas.width  = viewWidth;
         ctx.canvas.height = viewHeight;
 
