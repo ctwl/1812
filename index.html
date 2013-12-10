@@ -46,9 +46,9 @@
       // boundaries - floor
       var floorFixture = new b2FixtureDef;
       floorFixture.density = 1;
-      floorFixture.restitution = 1;
+      floorFixture.restitution = 0.5;
       floorFixture.shape = new b2PolygonShape;
-      floorFixture.shape.SetAsBox(viewWidth / SCALE, 10 / SCALE);
+      floorFixture.shape.SetAsBox((viewWidth+25) / SCALE, 10 / SCALE);
       var floorBodyDef = new b2BodyDef;
       floorBodyDef.type = b2Body.b2_staticBody;
       floorBodyDef.position.x = -25 / SCALE;
@@ -58,7 +58,7 @@
       // boundaries - left
       var leftFixture = new b2FixtureDef;
       leftFixture.shape = new b2PolygonShape;
-      leftFixture.shape.SetAsBox(10 / SCALE, viewHeight / SCALE);
+      leftFixture.shape.SetAsBox(10 / SCALE, (viewHeight+25) / SCALE);
       var leftBodyDef = new b2BodyDef;
       leftBodyDef.type = b2Body.b2_staticBody;
       leftBodyDef.position.x = -9 / SCALE;
@@ -68,10 +68,10 @@
       // boundaries - right
       var rightFixture = new b2FixtureDef;
       rightFixture.shape = new b2PolygonShape;
-      rightFixture.shape.SetAsBox(10 / SCALE, viewHeight / SCALE);
+      rightFixture.shape.SetAsBox(10 / SCALE, (viewHeight+25) / SCALE);
       var rightBodyDef = new b2BodyDef;
       rightBodyDef.type = b2Body.b2_staticBody;
-      rightBodyDef.position.x = (viewWidth+5) / SCALE;
+      rightBodyDef.position.x = (viewWidth+10) / SCALE;
       rightBodyDef.position.y = -25 / SCALE;
       var right = world.CreateBody(rightBodyDef);
       right.CreateFixture(rightFixture);
@@ -101,7 +101,7 @@
       bulletBodyDef.position.y = skin.y / SCALE;
       var bullet = world.CreateBody(bulletBodyDef);
       bullet.CreateFixture(bulletFixture);
-      bullet.ApplyImpulse(new b2Vec2(Math.cos(angle) * 5,Math.sin(angle) * 5), bullet.GetWorldCenter());
+      bullet.ApplyImpulse(new b2Vec2(Math.cos(angle) * power,Math.sin(angle) * power), bullet.GetWorldCenter());
 
       // assign actor
       var actor = new actorObject(bullet, skin);
@@ -226,6 +226,7 @@
       var tweens;
       var activeCount;
       var circleCount = 25;
+      var rectangle
 
       var bulletDelayCounter = 0; // counter for delaying creation of bullets
 
@@ -249,19 +250,25 @@
 
           var spawn = function(x,y,time) {
             var bulletBMP = new createjs.Bitmap(queue.getResult("bullet"));
-            bulletBMP.x = 500;
-            bulletBMP.y = 500;
+            bulletBMP.x = 600;
+            bulletBMP.y = 600;
             bulletBMP.regX = 9;   // important to set origin point to center of your bitmap
             bulletBMP.regY = 9; 
             bulletBMP.snapToPixel = true;
             bulletBMP.mouseEnabled = false;
             stage.addChild(bulletBMP);
 
-            var angle = Math.atan((y-500)/(x-500));
-            if(x <500){
+            var angle = Math.atan((y-600)/(x-600));
+            if(x <600){
               angle += Math.PI;
             }
-            box2d.createBullet(bulletBMP, angle, time/10);
+            if(time > 250){
+              time = 5.7;
+            }
+            else{
+              time = time /43.9;
+            }
+            box2d.createBullet(bulletBMP, angle, time);
           }
 
           return {
@@ -281,16 +288,14 @@
 
 
         function tick(event){
+          var cannonAngle = Math.atan((stage.mouseY-600)/(stage.mouseX-600))*(180/Math.PI);
+          if(stage.mouseX < 600){
+            cannonAngle += 180;
+          }
+          rectangle.rotation = cannonAngle;
 
           stage.update();
           box2d.update();
-          /*
-          bulletDelayCounter++;
-          if(bulletDelayCounter % 10 === 0) {  // delay so it doesn't spawn a bullet on every frame
-            bulletDelayCounter = 0;
-            bullets.spawn();
-          }
-          */
         }
 
         function tweenComplete() {
@@ -322,7 +327,9 @@
         }
 
         function fireBullet(event){
-          bullets.spawn(stage.mouseX, stage.mouseY, Date.now()-bulletStart);
+          if(stage.mouseInBounds){
+            bullets.spawn(stage.mouseX, stage.mouseY, Date.now()-bulletStart);
+          }
         }
 
         function mouseMove(event){
@@ -334,10 +341,18 @@
           //ball.addEventListener("click", handleClick);
           stage.addEventListener("stagemousedown", handleClick);
           stage.addEventListener("stagemouseup", fireBullet);
-          stage.addEventListener("stagemousemove", mouseMove);
+          //stage.addEventListener("stagemousemove", mouseMove);
           back.graphics.beginFill('AAAAAA').drawRect(0,0,viewWidth,viewHeight);
 
-          //createjs.Tween.get(ball, {loop : true}).to({x:viewWidth-100}, 20000).to({x:100}, 20000);
+          rectangle = new createjs.Shape();
+          rectangle.graphics.beginFill('blue').drawRect(0, 0, 80, 30);
+          //rectangle.regX = 0;
+          rectangle.regY = 15;
+          rectangle.x = rectangle.y = 600;
+          rectangle.rotation = -90;
+
+          stage.addChild(back);
+          stage.addChild(rectangle);
 
           channel.onmessage = function (data, userid, latency) {
             console.debug(userid, 'posted', data);
@@ -349,26 +364,6 @@
 
           createjs.Ticker.addEventListener("tick", tick);
           createjs.Ticker.setFPS(30);
-
-          stage.addChild(back);
-
-          tweens = [];
-                        
-          for (var i=0; i<circleCount; i++) {
-              // draw the circle, and put it on stage:
-              var circle = new createjs.Shape();
-              circle.graphics.setStrokeStyle(15);
-              circle.graphics.beginStroke("#331155");
-              circle.graphics.drawCircle(0,0,(i+1)*4);
-              circle.alpha = 1-i*0.02;
-              circle.x = Math.random()*550;
-              circle.y = Math.random()*400;
-              circle.compositeOperation = "lighter";
-
-              var tween = createjs.Tween.get(circle).to({x:275,y:200}, (0.5+i*0.04)*1500, createjs.Ease.bounceOut).call(tweenComplete);
-              tweens.push({tween:tween, ref:circle});
-              stage.addChild(circle);
-          }
         }
       }
 
