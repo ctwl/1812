@@ -284,6 +284,9 @@
             else{
               time = time /43.9;
             }
+            if(time < 3.2){
+                time = 3.2;
+            }
             box2d.createBullet(bulletBMP, angle, time);
           }
 
