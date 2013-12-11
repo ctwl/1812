@@ -182,6 +182,34 @@
     }
   })();
 
+    function cannon(id, x, y){
+      this.id = id;
+      this.x = x;
+      this.y = y;
+
+      //rectangle = new createjs.Shape();
+      this.bitmap = new createjs.Bitmap(queue.getResult("cannon"));
+      //rectangle.graphics.beginFill('blue').drawRect(0, 0, 80, 30);
+      //rectangle.regX = 0;
+      this.bitmap.regY = 15;
+      this.bitmap.regX = 9;
+      //rectangle.regY = 15;
+      this.bitmap.x = x;
+      this.bitmap.y = y;
+      //rectangle.x = rectangle.y = 600;
+      //this.bitmap.rotation = -90;
+      stage.addChild(this.bitmap);
+
+      
+      this.update = function(_x,_y){
+        var cannonAngle = Math.atan((_y-this.y)/(_x-this.x))*(180/Math.PI);
+          if(_x < this.x){
+            cannonAngle += 180;
+          }
+          this.bitmap.rotation = cannonAngle;
+      }
+    }
+
     // Chat Initializers
     // Basically like owning a dope loop pedal
 
@@ -261,6 +289,9 @@
 
       var bulletStart;
 
+      var cannons = [];
+      var testCannon;
+
       Array.prototype.randomElement = function () {
         return this[Math.floor(Math.random() * this.length)]
       }
@@ -275,20 +306,21 @@
         stage = new createjs.Stage('myCanvas');
         queue = new createjs.LoadQueue(false);
         box2d.setup();
+
         var bullets = (function() {
 
-          var spawn = function(x,y,time) {
+          var spawn = function(x,y,x0,y0,time) {
             var bulletBMP = new createjs.Bitmap(queue.getResult("bullet"));
-            bulletBMP.x = 600;
-            bulletBMP.y = 600;
+            bulletBMP.x = x0;
+            bulletBMP.y = y0;
             bulletBMP.regX = 9;   // important to set origin point to center of your bitmap
             bulletBMP.regY = 9; 
             bulletBMP.snapToPixel = true;
             bulletBMP.mouseEnabled = false;
             stage.addChild(bulletBMP);
 
-            var angle = Math.atan((y-600)/(x-600));
-            if(x <600){
+            var angle = Math.atan((y-y0)/(x-x0));
+            if(x <x0){
               angle += Math.PI;
             }
             if(time > 250){
@@ -315,18 +347,15 @@
         createjs.Sound.registerPlugin(createjs.WebAudioPlugin);
         queue.addEventListener("complete", onLoadComplete);
         queue.loadManifest([{id:"shrimp", src:"assets/shrimp64.png"},
-                            {id:"bullet", src:"assets/bullet18.png"}, 
+                            {id:"bullet", src:"assets/bullet18.png"},
+                            {id:"cannon", src:"assets/cannonPlaceHolder.png"}, 
                             {id:"songA", src:"assets/ToneWobbleA.mp3", data: 8},
                             {id:"songC", src:"assets/ToneWobbleC.mp3", data: 8}]);
 
 
         function tick(event){
-          var cannonAngle = Math.atan((stage.mouseY-600)/(stage.mouseX-600))*(180/Math.PI);
-          if(stage.mouseX < 600){
-            cannonAngle += 180;
-          }
-          rectangle.rotation = cannonAngle;
-
+          testCannon.update(stage.mouseX, stage.mouseY);
+          //testCannon.bitmap.x =700;
           stage.update();
           box2d.update();
         }
@@ -341,7 +370,7 @@
 
         function fireBullet(event){
           if(stage.mouseInBounds){
-            bullets.spawn(stage.mouseX, stage.mouseY, Date.now()-bulletStart);
+            bullets.spawn(stage.mouseX, stage.mouseY, testCannon.x,testCannon.y, Date.now()-bulletStart);
           }
         }
 
@@ -362,15 +391,21 @@
           //stage.addEventListener("stagemousemove", mouseMove);
           back.graphics.beginFill('AAAAAA').drawRect(0,0,viewWidth,viewHeight);
 
-          rectangle = new createjs.Shape();
-          rectangle.graphics.beginFill('blue').drawRect(0, 0, 80, 30);
-          //rectangle.regX = 0;
-          rectangle.regY = 15;
-          rectangle.x = rectangle.y = 600;
-          rectangle.rotation = -90;
-
           stage.addChild(back);
-          stage.addChild(rectangle);
+
+          testCannon = new cannon(5, 500, 500);
+          cannons.push(testCannon);
+
+          var bmap = new createjs.Bitmap(queue.getResult("cannonPlaceHolder"));
+          //rectangle.graphics.beginFill('blue').drawRect(0, 0, 80, 30);
+          //rectangle.regX = 0;
+          bmap.regY = 15;
+          //rectangle.regY = 15;
+          bmap.x = 100;
+          bmap.y = 100;
+          //rectangle.x = rectangle.y = 600;
+          //this.bitmap.rotation = -90;
+          stage.addChild(bmap);
 
           channel.onmessage = function (data, userid, latency) {
             console.debug(userid, 'posted', data);
