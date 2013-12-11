@@ -59,6 +59,7 @@
       floorBodyDef.position.y = (viewHeight+10) / SCALE;
       var floor = world.CreateBody(floorBodyDef);
       floor.CreateFixture(floorFixture);
+      floor.SetUserData(new wallData('floor'));
       // boundaries - left
       var leftFixture = new b2FixtureDef;
       leftFixture.shape = new b2PolygonShape;
@@ -69,6 +70,7 @@
       leftBodyDef.position.y = -25 / SCALE;
       var left = world.CreateBody(leftBodyDef);
       left.CreateFixture(leftFixture);
+      left.SetUserData(new wallData('left'));
       // boundaries - right
       var rightFixture = new b2FixtureDef;
       rightFixture.shape = new b2PolygonShape;
@@ -79,9 +81,14 @@
       rightBodyDef.position.y = -25 / SCALE;
       var right = world.CreateBody(rightBodyDef);
       right.CreateFixture(rightFixture);
+      right.SetUserData(new wallData('right'));
 
       listener.BeginContact = function(contact) {
-         console.log(contact.GetFixtureB().GetBody().GetUserData());
+         //console.debug(contact.GetFixtureB().GetBody().GetUserData());
+         if(contact.GetFixtureA().GetBody().GetUserData().id == 'floor'){
+            bodiesToRemove.push(contact.GetFixtureB().GetBody());
+            bodies.splice(bodies.indexOf(contact.GetFixtureB().GetBody()),1);
+         }
       }
       listener.EndContact = function(contact) {
           // console.log(contact.GetFixtureA().GetBody().GetUserData());
@@ -105,6 +112,10 @@
         this.skin.y = this.body.GetWorldCenter().y * SCALE;
       }
       actors.push(this);
+    }
+
+    var wallData = function(wall) {
+      this.id = wall;
     }
 
     // create bullet body shape and assign actor object
@@ -301,11 +312,12 @@
         var host = pathArray[2];
 
         queue.installPlugin(createjs.Sound);
+        createjs.Sound.registerPlugin(createjs.WebAudioPlugin);
         queue.addEventListener("complete", onLoadComplete);
         queue.loadManifest([{id:"shrimp", src:"assets/shrimp64.png"},
                             {id:"bullet", src:"assets/bullet18.png"}, 
-                            {id:"songA", src:"assets/ToneWobbleA.mp3"},
-                            {id:"songC", src:"assets/ToneWobbleC.mp3"}]);
+                            {id:"songA", src:"assets/ToneWobbleA.mp3", data: 8},
+                            {id:"songC", src:"assets/ToneWobbleC.mp3", data: 8}]);
 
 
         function tick(event){
@@ -323,27 +335,7 @@
             activeCount--;
         }
 
-        function handleClick(event){
-          var choice  = Math.random();
-          if(choice > 0.5){
-            createjs.Sound.play("songA");
-          }
-          else createjs.Sound.play("songC");
-          /*
-          var bmp = new createjs.Bitmap(queue.getResult("shrimp"));
-          bmp.x = Math.random()*500;
-          bmp.y = Math.random()*500;
-          stage.addChild(bmp);
-          */
-          /*
-          for (var i=0; i<circleCount; i++) {
-                var ref = tweens[i].ref;
-                var tween = tweens[i].tween;
-                                createjs.Tween.get(ref,{override:true}).to({x:stage.mouseX,y:stage.mouseY}, (0.5+i*0.04)*1500, createjs.Ease.bounceOut).call(tweenComplete);
-          }
-          activeCount = circleCount;
-          */
-
+        function loadBullet(event){
           bulletStart = Date.now();
         }
 
@@ -353,6 +345,10 @@
           }
         }
 
+        function handleClick(event){
+          instance = createjs.Sound.play("songA", createjs.Sound.INTERRUPT_EARLY,null,null,null,null,0.2);
+        }
+
         function mouseMove(event){
           //channel.send(stage.mouseX);
         }
@@ -360,7 +356,8 @@
         function onLoadComplete(event){
           var back = new createjs.Shape();
           //ball.addEventListener("click", handleClick);
-          stage.addEventListener("stagemousedown", handleClick);
+          stage.addEventListener("click", handleClick);
+          stage.addEventListener("stagemousedown", loadBullet);
           stage.addEventListener("stagemouseup", fireBullet);
           //stage.addEventListener("stagemousemove", mouseMove);
           back.graphics.beginFill('AAAAAA').drawRect(0,0,viewWidth,viewHeight);
@@ -380,11 +377,12 @@
             //appendDIV(data);
             //ball.x = data;
             console.log('latency:', latency, 'ms');
-            //createjs.Sound.play("songA");
           };
 
           createjs.Ticker.addEventListener("tick", tick);
           createjs.Ticker.setFPS(30);
+
+          //console.log(createjs.Sound.activePlugin.toString());
         }
       }
 
