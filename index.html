@@ -11,6 +11,7 @@
     <input type="text" id="channel" value="channel" title="channel name - use your own channel name"/>
     <button id="init-RTCMultiConnection">Open</button>
     <button id="join-RTCMultiConnection">Join</button>
+    <button id="leave">Leave</button>
     <div id="canvasContainer">
         <canvas id="myCanvas" width=500 height=500>
           I'm Sorry, your browser does not support the canvas tag.
@@ -305,18 +306,29 @@
         console.log('connecting to '+userid.toString());
     };
 
+    channel.onclose = function(event){
+    }
+
     document.getElementById('init-RTCMultiConnection').onclick = function () {
         channel.open(document.getElementById('channel').value || 'channel');
         document.getElementById('join-RTCMultiConnection').disabled = true;
         document.getElementById('init-RTCMultiConnection').disabled = true;
         isInitiator=true;
+        window.onbeforeunload = function(e){channel.leave()};
     };
 
     document.getElementById('join-RTCMultiConnection').onclick = function () {
         channel.connect(document.getElementById('channel').value || 'channel');
         document.getElementById('join-RTCMultiConnection').disabled = true;
         document.getElementById('init-RTCMultiConnection').disabled = true;
+        window.onbeforeunload = function(e){channel.leave()};
     };
+
+    document.getElementById('leave').onclick = function() {
+      channel.leave();
+      document.getElementById('join-RTCMultiConnection').disabled = false;
+      document.getElementById('init-RTCMultiConnection').disabled = false;
+    }
     /*
     var chatOutput = document.getElementById('chat-output'),
             fileProgress = document.getElementById('file-progress');
@@ -348,8 +360,9 @@
   /* users presence detection */
     channel.onleave = function (userid) {
     var message = 'A user whose id is '+ userid + ' left you!';
+        //channel._channels.splice(0,1);
         //appendDIV(message);
-        //console.warn(message);
+        console.warn(message);
         //bodies.splice(bodies.indexOf(contact.GetFixtureB().GetBody()),1);
         if(isInitiator){
           channel.eject(userid);
