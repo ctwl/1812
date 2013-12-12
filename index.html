@@ -218,9 +218,11 @@
     // Basically like owning a dope loop pedal
 
     var channel = new DataChannel();
-    var num = Math.floor(Math.random()*10000);
-    channel.userid =num;
-    console.log(num);
+    var myId = Math.floor(Math.random()*100000);
+    channel.userid =myId;
+    console.log(myId);
+    var isInitiator = false;
+    var inChannel = false;
     /*
     channel.onmessage = function (data, userid, latency) {
         console.debug(userid, 'posted', data);
@@ -230,17 +232,23 @@
     };
     */
 
-    channel.onopen = function () {
+    channel.onopen = function (userid) {
         if (document.getElementById('chat-input')) document.getElementById('chat-input').disabled = false;
         if (document.getElementById('file')) document.getElementById('file').disabled = false;
 
         if (document.getElementById('init-RTCMultiConnection')) document.getElementById('init-RTCMultiConnection').disabled = true;
+        if(!isInitiator && !inChannel){
+          channel.send(JSON.stringify({op:'newUser', x:myCannon.x, y:myCannon.y}, null, '\t'));
+        }
+        inChannel = true;
+        console.log('connecting to '+userid.toString());
     };
 
     document.getElementById('init-RTCMultiConnection').onclick = function () {
         channel.open(document.getElementById('channel').value || 'channel');
         document.getElementById('join-RTCMultiConnection').disabled = true;
         document.getElementById('init-RTCMultiConnection').disabled = true;
+        isInitiator=true;
     };
 
     document.getElementById('join-RTCMultiConnection').onclick = function () {
@@ -298,10 +306,11 @@
 
       var cannons = [];
       var myCannon;
-
+      /*
       Array.prototype.randomElement = function () {
         return this[Math.floor(Math.random() * this.length)]
       }
+      */
 
       function init() {
         var ctx = document.getElementById('myCanvas').getContext('2d');
@@ -382,7 +391,7 @@
         }
 
         function handleClick(event){
-          instance = createjs.Sound.play("songA", createjs.Sound.INTERRUPT_EARLY,null,null,null,null,0.2);
+          instance = createjs.Sound.play("songA", createjs.Sound.INTERRUPT_EARLY,null,null,null,null,(myCannon.x-500)/500);
         }
 
         function mouseMove(event){
@@ -400,8 +409,8 @@
 
           stage.addChild(back);
 
-          myCannon = new cannon(5, 500, 500);
-          cannons.push(myCannon);
+          myCannon = new cannon(myId, Math.random()*1000, 500);
+          cannons[myId] = myCannon;
 
           var bmap = new createjs.Bitmap(queue.getResult("cannonPlaceHolder"));
           //rectangle.graphics.beginFill('blue').drawRect(0, 0, 80, 30);
@@ -414,15 +423,35 @@
           //this.bitmap.rotation = -90;
           stage.addChild(bmap);
 
-          channel.onmessage = function (data, userid, latency) {
-            console.debug(userid, 'posted', data);
-            //appendDIV(data);
-            //ball.x = data;
-            console.log('latency:', latency, 'ms');
-          };
-
           createjs.Ticker.addEventListener("tick", tick);
           createjs.Ticker.setFPS(30);
+
+          channel.onmessage = function (data, userid, latency) {
+            console.debug(userid, 'posted', data);
+            var jsonData = JSON.parse(data);
+            var op = jsonData['op'];
+
+            if(op == 'newUser'){
+              for(elem in cannons){
+                console.log(elem);
+                var tempCannon = cannons[elem];
+                channel.channels[userid].send(JSON.stringify({op:'addUser', id:elem, x:tempCannon.x, y:tempCannon.y}));
+              }
+              cannons[userid]= new cannon(userid, jsonData.x, jsonData.y);
+              channel.send(JSON.stringify({op:'addUser', id:userid, x:jsonData.x, y:jsonData.y}));
+              return;
+            }
+
+            if(op == 'addUser'){
+              console.log(jsonData.id);
+              console.log('myid: '+myId.toString());
+              console.log(jsonData.id != myId);
+              if(jsonData.id != myId){
+                cannons[jsonData['id']] = new cannon(jsonData.id, jsonData.x, jsonData.y);
+              }
+              return;
+            }
+          };
 
           //console.log(createjs.Sound.activePlugin.toString());
         }
