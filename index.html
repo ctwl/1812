@@ -99,7 +99,6 @@
 
          if(dataB.id == 'target'){
           //stage.removeChild(dataB.skin);
-          createjs.Sound.play("chime", createjs.Sound.INTERRUPT_EARLY,null,null,null,0.2+(dataB.radius-20)*0.02667,(dataB.x-500)/500);
           bodiesToRemove.push(contact.GetFixtureB().GetBody());
           targetCounter--;
          }
@@ -150,13 +149,15 @@
       this.skin.alpha = 1;
       this.skin.x = x;
       this.skin.y = y;
+      this.death = targetDeaths[Math.floor(Math.random() * targetDeaths.length)];
       stage.addChild(this.skin);
       //targetActors[index] = this;
       this.update = function(){}
 
       this.removeActor = function() {
         //stage.removeChild(this.skin);
-        createjs.Tween.get(this.skin).to({scaleX:8, scaleY:8,alpha:0}, 4000, createjs.Ease.quintin).call(function(){stage.removeChild(this.skin)});
+        var inst = createjs.Sound.play(this.death.sound, createjs.Sound.INTERRUPT_EARLY,null,null,null,0.2+(this.rad-20)*0.02667,(this.x-500)/500);
+        createjs.Tween.get(this.skin).to({scaleX:8, scaleY:8,alpha:0}, inst.getDuration()/3, this.death.tween).call(function(){stage.removeChild(this.skin)});
         //targetActors.splice(targetActors.indexOf(actor),1);
       }
       //var tween = createjs.Tween.get(circle).to({x:275,y}, (0.5+i*0.04)*1500, createjs.Ease.bounceOut).call(tweenComplete);
@@ -375,6 +376,8 @@
 
       var cannons = [];
       var myCannon;
+
+      var targetDeaths = [];
       /*
       Array.prototype.randomElement = function () {
         return this[Math.floor(Math.random() * this.length)]
@@ -437,7 +440,23 @@
                             {id:"songA", src:"assets/ToneWobbleA.mp3", data: 8},   // Tonewobble from createjs
                             {id:"songC", src:"assets/ToneWobbleC.mp3", data: 8},
                             {id:"click", src:"assets/click.ogg", data:16},
-                            {id:"chime", src:"assets/chime.ogg", data:8}]); // snapper4298 nikon. edits made
+                            {id:"fire", src:"assets/fire.ogg", data:16},
+                            {id:"chime", src:"assets/chime.ogg", data:8},
+                            {id:"chimeM7", src:"assets/chimedown7.ogg", data:4},
+                            {id:"chimeP7", src:"assets/chimeup5.ogg", data:4},
+                            {id:"chimeB", src:"assets/chimeupBounce.ogg", data:4}]); // snapper4298 nikon. edits made
+
+        var targetDeath = function(sound,tween) {
+          this.sound = sound;
+          this.tween = tween;
+        }
+
+        targetDeaths.push(new targetDeath('songA',createjs.Ease.quintIn));
+        targetDeaths.push(new targetDeath('songC', createjs.Ease.quintIn));
+        targetDeaths.push(new targetDeath('chime', createjs.Ease.quadIn));
+        targetDeaths.push(new targetDeath('chimeM7', createjs.Ease.linear));
+        targetDeaths.push(new targetDeath('chimeP7', createjs.Ease.linear));
+        targetDeaths.push(new targetDeath('chimeB', createjs.Ease.bounceIn))
 
 
         function tick(event){
@@ -451,7 +470,7 @@
             channel.send(JSON.stringify({op:'update', rot:myCannon.bitmap.rotation}));
           }
 
-          if(Math.random() < 0.01 && targetCounter < 16 && isInitiator){
+          if(Math.random() < 0.04 && targetCounter < 40 && isInitiator){
             var x = 100+800*Math.random();
             var y = 100+200*Math.random();
             var radius = 20+Math.random()*30;
@@ -480,7 +499,7 @@
         }
 
         function handleClick(event){
-          instance = createjs.Sound.play("songA", createjs.Sound.INTERRUPT_EARLY,null,null,null,0.4,(myCannon.x-500)/500);
+          instance = createjs.Sound.play("fire", createjs.Sound.INTERRUPT_EARLY,null,null,null,0.4,(myCannon.x-500)/500);
         }
 
         function mouseMove(event){
