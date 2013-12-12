@@ -285,8 +285,14 @@
   /* users presence detection */
     channel.onleave = function (userid) {
     var message = 'A user whose id is '+ userid + ' left you!';
-        appendDIV(message);
-        console.warn(message);
+        //appendDIV(message);
+        //console.warn(message);
+        //bodies.splice(bodies.indexOf(contact.GetFixtureB().GetBody()),1);
+        if(isInitiator){
+          channel.eject(userid);
+        }
+        cannons[userid].remove();
+        cannons.splice(cannons.indexOf(cannons[userid]),1);
     };
 
       var stage;
@@ -392,6 +398,7 @@
         function fireBullet(event){
           if(stage.mouseInBounds){
             bullets.spawn(stage.mouseX, stage.mouseY, myCannon.x,myCannon.y, Date.now()-bulletStart);
+            channel.send(JSON.stringify({op:'bullet', x:stage.mouseX, y:stage.mouseY, time:Date.now()-bulletStart}));
           }
         }
 
@@ -438,6 +445,11 @@
 
             if(op == 'update'){
               cannons[userid].bitmap.rotation = jsonData.rot;
+              return;
+            }
+            if(op == 'bullet'){
+              bullets.spawn(jsonData.x, jsonData.y, cannons[userid].x,cannons[userid].y, jsonData.time);
+              return;
             }
 
             if(op == 'newUser'){
