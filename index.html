@@ -300,7 +300,7 @@
       var circleCount = 25;
       var rectangle
 
-      var bulletDelayCounter = 0; // counter for delaying creation of bullets
+      var updateDelayCounter = 0; // counter for delaying creation of bullets
 
       var bulletStart;
 
@@ -374,6 +374,11 @@
           //myCannon.bitmap.x =700;
           stage.update();
           box2d.update();
+
+          updateDelayCounter++;
+          if(!(updateDelayCounter % 8) && inChannel){
+            channel.send(JSON.stringify({op:'update', rot:myCannon.bitmap.rotation}));
+          }
         }
 
         function tweenComplete() {
@@ -427,13 +432,17 @@
           createjs.Ticker.setFPS(30);
 
           channel.onmessage = function (data, userid, latency) {
-            console.debug(userid, 'posted', data);
+            //console.debug(userid, 'posted', data);
             var jsonData = JSON.parse(data);
             var op = jsonData['op'];
 
+            if(op == 'update'){
+              cannons[userid].bitmap.rotation = jsonData.rot;
+            }
+
             if(op == 'newUser'){
               for(elem in cannons){
-                console.log(elem);
+                //console.log(elem);
                 var tempCannon = cannons[elem];
                 channel.channels[userid].send(JSON.stringify({op:'addUser', id:elem, x:tempCannon.x, y:tempCannon.y}));
               }
@@ -443,9 +452,9 @@
             }
 
             if(op == 'addUser'){
-              console.log(jsonData.id);
-              console.log('myid: '+myId.toString());
-              console.log(jsonData.id != myId);
+              //console.log(jsonData.id);
+              //console.log('myid: '+myId.toString());
+              //console.log(jsonData.id != myId);
               if(jsonData.id != myId){
                 cannons[jsonData['id']] = new cannon(jsonData.id, jsonData.x, jsonData.y);
               }
