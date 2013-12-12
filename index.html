@@ -8,16 +8,16 @@
     <script src="assets/scripts/DataChannel.js"></script>
   </head>
   <body onload="init()" id="body">
-    <input type="text" id="channel" value="channel" title="channel name - use your own channel name"/>
-    <button id="init-RTCMultiConnection">Open</button>
-    <button id="join-RTCMultiConnection">Join</button>
-    <input type="text" id="chat-input" disabled><br/>
     <div id="canvasContainer">
         <canvas id="myCanvas" width=500 height=500>
           I'm Sorry, your browser does not support the canvas tag.
         </canvas>
     </div>
-    <div id="chat-output"></div>
+    <div id="formblock">
+      <input class="an_formitem" type="text" id="channel" value="channel" title="channel name - use your own channel name"/>
+      <button class="an_formitem" id="init-RTCMultiConnection">Open</button>
+      <button class="an_formitem" id="join-RTCMultiConnection">Join</button>
+    </div>
   </body>
 
   <script type="text/javascript">
@@ -320,30 +320,6 @@
         document.getElementById('init-RTCMultiConnection').disabled = true;
     };
 
-    var chatOutput = document.getElementById('chat-output'),
-            fileProgress = document.getElementById('file-progress');
-
-    function appendDIV(data, parent) {
-        var div = document.createElement('div');
-        div.innerHTML = data;
-
-        if (!parent) chatOutput.appendChild(div, chatOutput.firstChild);
-        else fileProgress.appendChild(div, fileProgress.firstChild);
-
-        div.tabIndex = 0;
-        div.focus();
-
-        chatInput.focus();
-    }
-
-    var chatInput = document.getElementById('chat-input');
-    chatInput.onkeypress = function (e) {
-        if (e.keyCode !== 13 || !this.value) return;
-        appendDIV(this.value);
-        channel.send(this.value);
-        this.value = '';
-        this.focus();
-    };
   
   /* users presence detection */
     channel.onleave = function (userid) {
