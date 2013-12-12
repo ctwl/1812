@@ -85,6 +85,9 @@
 
       listener.BeginContact = function(contact) {
          //console.debug(contact.GetFixtureB().GetBody().GetUserData());
+         console.log(contact.GetFixtureA().GetBody().GetUserData().id);
+         console.log(contact.GetFixtureB().GetBody().GetUserData().id);
+
          if(contact.GetFixtureA().GetBody().GetUserData().id == 'floor'){
             bodiesToRemove.push(contact.GetFixtureB().GetBody());
             bodies.splice(bodies.indexOf(contact.GetFixtureB().GetBody()),1);
@@ -103,9 +106,10 @@
     }
 
     // actor object - this is responsible for taking the body's position and translating it to your easel display object
-    var actorObject = function(body, skin) {
+    var actorObject = function(body, skin, id) {
       this.body = body;
       this.skin = skin;
+      this.id = id;
       this.update = function() {  // translate box2d positions to pixels
         this.skin.rotation = this.body.GetAngle() * (180 / Math.PI);
         this.skin.x = this.body.GetWorldCenter().x * SCALE;
@@ -118,8 +122,37 @@
       this.id = wall;
     }
 
+    var targetActor = function(x, y, radius){
+      this.skin = new createjs.Shape();
+      this.skin.graphics.setStrokeStyle(10);
+      this.skin.graphics.beginStroke("#113355");
+      this.skin.graphics.drawCircle(0,0,radius);
+      this.skin.alpha = 1;
+      this.skin.x = x;
+      this.skin.y = y;
+      stage.addChild(this.skin);
+      //var tween = createjs.Tween.get(circle).to({x:275,y}, (0.5+i*0.04)*1500, createjs.Ease.bounceOut).call(tweenComplete);
+      //tweens.push({tween:tween, ref:circle});
+    }
+
+    var createTarget = function(){
+      var x = 100+800*Math.random();
+      var y = 100+100*Math.random();
+      var radius = Math.random()*20;
+      var targetFixture = new b2FixtureDef;
+      targetFixture.shape = new b2CircleShape(radius / SCALE);
+      var targetBodyDef = new b2BodyDef;
+      targetBodyDef.type = b2Body.b2_staticBody;
+      targetBodyDef.position.x = x;
+      targetBodyDef.position.y = y;
+
+      var target = world.CreateBody(targetBodyDef);
+      target.CreateFixture(targetFixture);
+      target.SetUserData(new targetActor(x, y, radius));
+    }
+
     // create bullet body shape and assign actor object
-    var createBullet = function(skin,angle,power) {
+    var createBullet = function(skin,angle,power,id) {
       var bulletFixture = new b2FixtureDef;
       bulletFixture.density = 1;
       bulletFixture.restitution = 0.6;
@@ -133,7 +166,7 @@
       bullet.ApplyImpulse(new b2Vec2(Math.cos(angle) * power,Math.sin(angle) * power), bullet.GetWorldCenter());
 
       // assign actor
-      var actor = new actorObject(bullet, skin);
+      var actor = new actorObject(bullet, skin, id);
       bullet.SetUserData(actor);  // set the actor as user data of the body so we can use it later: body.GetUserData()
       bodies.push(bullet);
     }
@@ -179,6 +212,7 @@
       setup: setup,
       update: update,
       createBullet: createBullet,
+      createTarget: createTarget,
     }
   })();
 
@@ -331,7 +365,7 @@
 
         var bullets = (function() {
 
-          var spawn = function(x,y,x0,y0,time) {
+          var spawn = function(id,x,y,x0,y0,time) {
             var bulletBMP = new createjs.Bitmap(queue.getResult("bullet"));
             bulletBMP.x = x0;
             bulletBMP.y = y0;
@@ -354,7 +388,7 @@
             if(time < 3.2){
                 time = 3.2;
             }
-            box2d.createBullet(bulletBMP, angle, time);
+            box2d.createBullet(bulletBMP, angle, time,id);
           }
 
           return {
@@ -397,8 +431,10 @@
 
         function fireBullet(event){
           if(stage.mouseInBounds){
-            bullets.spawn(stage.mouseX, stage.mouseY, myCannon.x,myCannon.y, Date.now()-bulletStart);
-            channel.send(JSON.stringify({op:'bullet', x:stage.mouseX, y:stage.mouseY, time:Date.now()-bulletStart}));
+            bullets.spawn(myId,stage.mouseX, stage.mouseY, myCannon.x,myCannon.y, Date.now()-bulletStart);
+            if (inChannel){
+              channel.send(JSON.stringify({op:'bullet', x:stage.mouseX, y:stage.mouseY, time:Date.now()-bulletStart}));
+            }
           }
         }
 
@@ -435,6 +471,8 @@
           //this.bitmap.rotation = -90;
           stage.addChild(bmap);
 
+          box2d.createTarget();
+
           createjs.Ticker.addEventListener("tick", tick);
           createjs.Ticker.setFPS(30);
 
@@ -448,7 +486,7 @@
               return;
             }
             if(op == 'bullet'){
-              bullets.spawn(jsonData.x, jsonData.y, cannons[userid].x,cannons[userid].y, jsonData.time);
+              bullets.spawn(userid,jsonData.x, jsonData.y, cannons[userid].x,cannons[userid].y, jsonData.time);
               return;
             }
 
