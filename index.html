@@ -11,13 +11,11 @@
     <input type="text" id="channel" value="channel" title="channel name - use your own channel name"/>
     <button id="init-RTCMultiConnection">Open</button>
     <button id="join-RTCMultiConnection">Join</button>
-    <input type="text" id="chat-input" disabled><br/>
     <div id="canvasContainer">
         <canvas id="myCanvas" width=500 height=500>
           I'm Sorry, your browser does not support the canvas tag.
         </canvas>
     </div>
-    <div id="chat-output"></div>
   </body>
 
   <script type="text/javascript">
@@ -296,7 +294,7 @@
     */
 
     channel.onopen = function (userid) {
-        if (document.getElementById('chat-input')) document.getElementById('chat-input').disabled = false;
+        //if (document.getElementById('chat-input')) document.getElementById('chat-input').disabled = false;
         if (document.getElementById('file')) document.getElementById('file').disabled = false;
 
         if (document.getElementById('init-RTCMultiConnection')) document.getElementById('init-RTCMultiConnection').disabled = true;
@@ -319,7 +317,7 @@
         document.getElementById('join-RTCMultiConnection').disabled = true;
         document.getElementById('init-RTCMultiConnection').disabled = true;
     };
-
+    /*
     var chatOutput = document.getElementById('chat-output'),
             fileProgress = document.getElementById('file-progress');
 
@@ -335,7 +333,8 @@
 
         chatInput.focus();
     }
-
+    */
+    /*
     var chatInput = document.getElementById('chat-input');
     chatInput.onkeypress = function (e) {
         if (e.keyCode !== 13 || !this.value) return;
@@ -344,6 +343,7 @@
         this.value = '';
         this.focus();
     };
+    */
   
   /* users presence detection */
     channel.onleave = function (userid) {
