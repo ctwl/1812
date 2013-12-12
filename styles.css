@@ -25,7 +25,7 @@ time, mark, audio, video {
 body{
     position:absolute;
     width:100%;
-    /*background:black;*/
+    background:black;
 }
 
 #channel {
@@ -39,28 +39,36 @@ body{
 }
 #canvasContainer {
     clear:both;
-    width:1000px;
-    height:618px;
+    width:1200px;
+    height:718px;
     margin:10px auto 0px auto;
     position:relative;
     outline:1px solid black;
 }
 
 #formblock {
-    width:1000px;
+    width:1200px;
+    height:35px;
+    padding:4px;
     margin:10px auto 0px auto;
 }
 
 #channel, #init-RTCMultiConnection, #join-RTCMultiConnection{
-    height:30px;
+    height:20px;
     display:block;
     float:left;
-    width:140px;
+    width:48px;
     text-align: center;
-    margin-right:20px;
-
+    margin-right:2px;
+    font-size:10px;
+    top:-44px;
+    left:4px;
+    position:relative;
 }
+
 button{
     margin:3px;
-
+}
+#channel{
+    width:80px;
 }
