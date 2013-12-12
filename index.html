@@ -92,7 +92,7 @@
          var dataB = contact.GetFixtureB().GetBody().GetUserData();
 
          if(contact.GetFixtureA().GetBody().GetUserData().id == 'floor'){
-            createjs.Sound.play("click", createjs.Sound.INTERRUPT_EARLY,null,null,null,0.4,(dataB.skin.x-500)/500);
+            createjs.Sound.play("click", createjs.Sound.INTERRUPT_EARLY,null,null,null,0.4,(dataB.skin.x-600)/600);
             bodiesToRemove.push(contact.GetFixtureB().GetBody());
             bodies.splice(bodies.indexOf(contact.GetFixtureB().GetBody()),1);
          }
@@ -156,7 +156,7 @@
 
       this.removeActor = function() {
         //stage.removeChild(this.skin);
-        var inst = createjs.Sound.play(this.death.sound, createjs.Sound.INTERRUPT_EARLY,null,null,null,0.2+(this.rad-20)*0.02667,(this.x-500)/500);
+        var inst = createjs.Sound.play(this.death.sound, createjs.Sound.INTERRUPT_EARLY,null,null,null,0.2+(this.rad-20)*0.02667,(this.x-600)/600);
         createjs.Tween.get(this.skin).to({scaleX:8, scaleY:8,alpha:0}, inst.getDuration()/3, this.death.tween).call(function(){stage.removeChild(this.skin)});
         //targetActors.splice(targetActors.indexOf(actor),1);
       }
@@ -447,8 +447,8 @@
           }
 
           if(Math.random() < 0.04 && targetCounter < 40 && isInitiator){
-            var x = 100+800*Math.random();
-            var y = 100+200*Math.random();
+            var x = 100+1000*Math.random();
+            var y = 150+250*Math.random();
             var radius = 20+Math.random()*30;
             var color = '#'+Math.floor(Math.random()*16777215).toString(16); //paulirish.com/2009/random-hex-color-code-snippets/
             box2d.createTarget(x,y,radius,color);
@@ -475,7 +475,7 @@
         }
 
         function handleClick(event){
-          instance = createjs.Sound.play("fire", createjs.Sound.INTERRUPT_EARLY,null,null,null,0.13,(myCannon.x-500)/500);
+          instance = createjs.Sound.play("fire", createjs.Sound.INTERRUPT_EARLY,null,null,null,0.13,(myCannon.x-600)/600);
         }
 
         function mouseMove(event){
@@ -493,7 +493,7 @@
 
           stage.addChild(back);
 
-          myCannon = new cannon(myId, Math.random()*1000, 500);
+          myCannon = new cannon(myId, Math.random()*1200, 500);
           cannons[myId] = myCannon;
 
           var bmap = new createjs.Bitmap(queue.getResult("cannonPlaceHolder"));
