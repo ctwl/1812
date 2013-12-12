@@ -155,7 +155,7 @@
       this.removeActor = function() {
         //stage.removeChild(this.skin);
         var inst = createjs.Sound.play(this.death.sound, createjs.Sound.INTERRUPT_EARLY,null,null,null,0.2+(this.rad-20)*0.02667,(this.x-500)/500);
-        createjs.Tween.get(this.skin).to({scaleX:8, scaleY:8,alpha:0}, inst.getDuration()/3, this.death.tween).call(function(){stage.removeChild(this.skin)});
+        createjs.Tween.get(this.skin).to({scaleX:8, scaleY:8,alpha:0}, inst.getDuration()/3, this.death.tween).call(function(skin){stage.removeChild(skin)},[this.skin]);
         //targetActors.splice(targetActors.indexOf(actor),1);
       }
       //var tween = createjs.Tween.get(circle).to({x:275,y}, (0.5+i*0.04)*1500, createjs.Ease.bounceOut).call(tweenComplete);
