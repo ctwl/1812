@@ -92,12 +92,14 @@
          var dataB = contact.GetFixtureB().GetBody().GetUserData();
 
          if(contact.GetFixtureA().GetBody().GetUserData().id == 'floor'){
+            createjs.Sound.play("click", createjs.Sound.INTERRUPT_EARLY,null,null,null,0.4,(dataB.skin.x-500)/500);
             bodiesToRemove.push(contact.GetFixtureB().GetBody());
             bodies.splice(bodies.indexOf(contact.GetFixtureB().GetBody()),1);
          }
 
          if(dataB.id == 'target'){
           //stage.removeChild(dataB.skin);
+          createjs.Sound.play("chime", createjs.Sound.INTERRUPT_EARLY,null,null,null,0.2+(dataB.radius-20)*0.02667,(dataB.x-500)/500);
           bodiesToRemove.push(contact.GetFixtureB().GetBody());
           targetCounter--;
          }
@@ -135,12 +137,12 @@
       this.id = wall;
     }
 
-    var targetActor = function(x, y, radius){
+    var targetActor = function(x, y, radius,color){
       this.id = 'target';
       this.x = x;
       this.y = y;
       this.rad = radius;
-      this.color = '#'+Math.floor(Math.random()*16777215).toString(16); //paulirish.com/2009/random-hex-color-code-snippets/
+      this.color = color;
       this.skin = new createjs.Shape();
       this.skin.graphics.setStrokeStyle(15);
       this.skin.graphics.beginStroke(this.color);
@@ -149,21 +151,20 @@
       this.skin.x = x;
       this.skin.y = y;
       stage.addChild(this.skin);
-      //targetActors.push(this);
+      //targetActors[index] = this;
       this.update = function(){}
 
       this.removeActor = function() {
-        stage.removeChild(this.skin);
+        //stage.removeChild(this.skin);
+        createjs.Tween.get(this.skin).to({scaleX:8, scaleY:8,alpha:0}, 4000, createjs.Ease.quintin).call(function(){stage.removeChild(this.skin)});
         //targetActors.splice(targetActors.indexOf(actor),1);
       }
       //var tween = createjs.Tween.get(circle).to({x:275,y}, (0.5+i*0.04)*1500, createjs.Ease.bounceOut).call(tweenComplete);
       //tweens.push({tween:tween, ref:circle});
     }
 
-    var createTarget = function(){
-      var x = 100+800*Math.random();
-      var y = 100+200*Math.random();
-      var radius = Math.random()*50;
+    var createTarget = function(x,y,radius,color){
+      
       var targetFixture = new b2FixtureDef;
       targetFixture.shape = new b2CircleShape(radius / SCALE);
       var targetBodyDef = new b2BodyDef;
@@ -173,7 +174,7 @@
 
       var target = world.CreateBody(targetBodyDef);
       target.CreateFixture(targetFixture);
-      target.SetUserData(new targetActor(x, y, radius));
+      target.SetUserData(new targetActor(x, y, radius,color));
     }
 
     // create bullet body shape and assign actor object
@@ -433,8 +434,10 @@
         queue.loadManifest([{id:"shrimp", src:"assets/shrimp64.png"},
                             {id:"bullet", src:"assets/bullet18.png"},
                             {id:"cannon", src:"assets/cannonPlaceHolder.png"}, 
-                            {id:"songA", src:"assets/ToneWobbleA.mp3", data: 8},
-                            {id:"songC", src:"assets/ToneWobbleC.mp3", data: 8}]);
+                            {id:"songA", src:"assets/ToneWobbleA.mp3", data: 8},   // Tonewobble from createjs
+                            {id:"songC", src:"assets/ToneWobbleC.mp3", data: 8},
+                            {id:"click", src:"assets/click.ogg", data:16},
+                            {id:"chime", src:"assets/chime.ogg", data:8}]); // snapper4298 nikon. edits made
 
 
         function tick(event){
@@ -448,9 +451,14 @@
             channel.send(JSON.stringify({op:'update', rot:myCannon.bitmap.rotation}));
           }
 
-          if(Math.random() < 0.01 && targetCounter < 16){
-            box2d.createTarget();
+          if(Math.random() < 0.01 && targetCounter < 16 && isInitiator){
+            var x = 100+800*Math.random();
+            var y = 100+200*Math.random();
+            var radius = 20+Math.random()*30;
+            var color = '#'+Math.floor(Math.random()*16777215).toString(16); //paulirish.com/2009/random-hex-color-code-snippets/
+            box2d.createTarget(x,y,radius,color);
             targetCounter++;
+            channel.send(JSON.stringify({op:'target', x:x, y:y, radius:radius, color:color}));
           }
         }
 
@@ -472,7 +480,7 @@
         }
 
         function handleClick(event){
-          instance = createjs.Sound.play("songA", createjs.Sound.INTERRUPT_EARLY,null,null,null,null,(myCannon.x-500)/500);
+          instance = createjs.Sound.play("songA", createjs.Sound.INTERRUPT_EARLY,null,null,null,0.4,(myCannon.x-500)/500);
         }
 
         function mouseMove(event){
@@ -521,6 +529,9 @@
             if(op == 'bullet'){
               bullets.spawn(userid,jsonData.x, jsonData.y, cannons[userid].x,cannons[userid].y, jsonData.time);
               return;
+            }
+            if(op == 'target'){
+              box2d.createTarget(jsonData.x, jsonData.y, jsonData.radius, jsonData.color);
             }
 
             if(op == 'newUser'){
