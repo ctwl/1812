@@ -43,6 +43,7 @@
     var bodiesToRemove = [];
     var actors = [];
     var bodies = [];
+    var targetActors = [];
 
     // box2d world setup and boundaries
     var setup = function() {
@@ -85,12 +86,20 @@
 
       listener.BeginContact = function(contact) {
          //console.debug(contact.GetFixtureB().GetBody().GetUserData());
-         console.log(contact.GetFixtureA().GetBody().GetUserData().id);
-         console.log(contact.GetFixtureB().GetBody().GetUserData().id);
+         //console.log(contact.GetFixtureA().GetBody().GetUserData().id);
+         //console.log(contact.GetFixtureB().GetBody().GetUserData().id);
+         var dataA = contact.GetFixtureA().GetBody().GetUserData();
+         var dataB = contact.GetFixtureB().GetBody().GetUserData();
 
          if(contact.GetFixtureA().GetBody().GetUserData().id == 'floor'){
             bodiesToRemove.push(contact.GetFixtureB().GetBody());
             bodies.splice(bodies.indexOf(contact.GetFixtureB().GetBody()),1);
+         }
+
+         if(dataB.id == 'target'){
+          //stage.removeChild(dataB.skin);
+          bodiesToRemove.push(contact.GetFixtureB().GetBody());
+          targetCounter--;
          }
       }
       listener.EndContact = function(contact) {
@@ -116,6 +125,10 @@
         this.skin.y = this.body.GetWorldCenter().y * SCALE;
       }
       actors.push(this);
+      this.removeActor = function() {
+        stage.removeChild(this.skin);
+        actors.splice(actors.indexOf(this),1);
+      }
     }
 
     var wallData = function(wall) {
@@ -123,28 +136,40 @@
     }
 
     var targetActor = function(x, y, radius){
+      this.id = 'target';
+      this.x = x;
+      this.y = y;
+      this.rad = radius;
+      this.color = '#'+Math.floor(Math.random()*16777215).toString(16); //paulirish.com/2009/random-hex-color-code-snippets/
       this.skin = new createjs.Shape();
-      this.skin.graphics.setStrokeStyle(10);
-      this.skin.graphics.beginStroke("#113355");
+      this.skin.graphics.setStrokeStyle(15);
+      this.skin.graphics.beginStroke(this.color);
       this.skin.graphics.drawCircle(0,0,radius);
       this.skin.alpha = 1;
       this.skin.x = x;
       this.skin.y = y;
       stage.addChild(this.skin);
+      //targetActors.push(this);
+      this.update = function(){}
+
+      this.removeActor = function() {
+        stage.removeChild(this.skin);
+        //targetActors.splice(targetActors.indexOf(actor),1);
+      }
       //var tween = createjs.Tween.get(circle).to({x:275,y}, (0.5+i*0.04)*1500, createjs.Ease.bounceOut).call(tweenComplete);
       //tweens.push({tween:tween, ref:circle});
     }
 
     var createTarget = function(){
       var x = 100+800*Math.random();
-      var y = 100+100*Math.random();
-      var radius = Math.random()*20;
+      var y = 100+200*Math.random();
+      var radius = Math.random()*50;
       var targetFixture = new b2FixtureDef;
       targetFixture.shape = new b2CircleShape(radius / SCALE);
       var targetBodyDef = new b2BodyDef;
       targetBodyDef.type = b2Body.b2_staticBody;
-      targetBodyDef.position.x = x;
-      targetBodyDef.position.y = y;
+      targetBodyDef.position.x = x / SCALE;
+      targetBodyDef.position.y = y / SCALE;
 
       var target = world.CreateBody(targetBodyDef);
       target.CreateFixture(targetFixture);
@@ -172,10 +197,12 @@
     }
 
     // remove actor and it's skin object
+    /*
     var removeActor = function(actor) {
       stage.removeChild(actor.skin);
       actors.splice(actors.indexOf(actor),1);
     }
+    */
 
     // box2d update function. delta time is used to avoid differences in simulation if frame rate drops
     var update = function() {
@@ -186,7 +213,7 @@
       while(fixedTimestepAccumulator >= STEP) {
         // remove bodies before world timestep
         for(var i=0, l=bodiesToRemove.length; i<l; i++) {
-          removeActor(bodiesToRemove[i].GetUserData());
+          bodiesToRemove[i].GetUserData().removeActor();
           bodiesToRemove[i].SetUserData(null);
           world.DestroyBody(bodiesToRemove[i]);
         }
@@ -341,6 +368,7 @@
       var rectangle
 
       var updateDelayCounter = 0; // counter for delaying creation of bullets
+      var targetCounter = 0;
 
       var bulletStart;
 
@@ -419,6 +447,11 @@
           if(!(updateDelayCounter % 8) && inChannel){
             channel.send(JSON.stringify({op:'update', rot:myCannon.bitmap.rotation}));
           }
+
+          if(Math.random() < 0.01 && targetCounter < 16){
+            box2d.createTarget();
+            targetCounter++;
+          }
         }
 
         function tweenComplete() {
@@ -471,7 +504,7 @@
           //this.bitmap.rotation = -90;
           stage.addChild(bmap);
 
-          box2d.createTarget();
+          //box2d.createTarget();
 
           createjs.Ticker.addEventListener("tick", tick);
           createjs.Ticker.setFPS(30);
